@@ -34,6 +34,13 @@ export function buildApp() {
     return reply.status(500).send({ message: "Internal server error" });
   });
 
+  app.get("/health", async () => ({
+    status: "ok",
+    service: "ecom-backend",
+    uptime: process.uptime(),
+    timestamp: Date.now()
+  }));
+
   app.register(appRoutes, { prefix: "/api/v1" });
   return app;
 }
