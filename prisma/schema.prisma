@@ -1,0 +1,80 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @db.Uuid
+  email        String   @unique
+  passwordHash String   @map("password_hash")
+  fullName     String   @map("full_name")
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  orders       Order[]
+
+  @@map("users")
+}
+
+model Product {
+  id         String      @id @db.Uuid
+  sku        String      @unique
+  name       String
+  priceCents Int         @map("price_cents")
+  version    Int         @default(0)
+  createdAt  DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
+  inventory  Inventory?
+  orderItems OrderItem[]
+
+  @@map("products")
+}
+
+model Inventory {
+  productId String   @id @map("product_id") @db.Uuid
+  quantity  Int
+  updatedAt DateTime @default(now()) @map("updated_at") @db.Timestamptz(6)
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@map("inventories")
+}
+
+model Order {
+  id             String      @id @db.Uuid
+  userId         String      @map("user_id") @db.Uuid
+  status         String
+  totalCents     Int         @map("total_cents")
+  idempotencyKey String      @unique @map("idempotency_key")
+  createdAt      DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
+  user           User        @relation(fields: [userId], references: [id])
+  items          OrderItem[]
+  payment        Payment?
+
+  @@map("orders")
+}
+
+model OrderItem {
+  id            String  @id @db.Uuid
+  orderId       String  @map("order_id") @db.Uuid
+  productId     String  @map("product_id") @db.Uuid
+  quantity      Int
+  unitPriceCents Int    @map("unit_price_cents")
+  order         Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product       Product @relation(fields: [productId], references: [id])
+
+  @@map("order_items")
+}
+
+model Payment {
+  id         String   @id @db.Uuid
+  orderId    String   @unique @map("order_id") @db.Uuid
+  status     String
+  amountCents Int     @map("amount_cents")
+  providerRef String? @map("provider_ref")
+  retryCount Int      @default(0) @map("retry_count")
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  order      Order    @relation(fields: [orderId], references: [id])
+
+  @@map("payments")
+}

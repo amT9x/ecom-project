@@ -1,0 +1,10 @@
+node_modules
+dist
+
+.env
+.env.example
+.env.test.example
+docs
+build/
+.DS_Store
+
