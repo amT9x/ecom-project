@@ -9,6 +9,8 @@ import { appRoutes } from "../routes";
 import { httpDurationMs } from "../../infrastructure/metrics";
 import { AppError } from "../../core/errors/app-error";
 import { requestContext } from "../middlewares/request-context";
+import { pgPool } from "../../core/database/postgres";
+import { redis } from "../../core/cache/redis";
 
 export function buildApp() {
   const app = Fastify({ loggerInstance: logger });
@@ -40,6 +42,42 @@ export function buildApp() {
     uptime: process.uptime(),
     timestamp: Date.now()
   }));
+
+  app.get("/ready", async (_, reply) => {
+    let postgresUp = true;
+    let redisUp = true;
+
+    try {
+      await pgPool.query("SELECT 1");
+    } catch {
+      postgresUp = false;
+    }
+
+    try {
+      await redis.ping();
+    } catch {
+      redisUp = false;
+    }
+
+    if (postgresUp && redisUp) {
+      return reply.status(200).send({
+        status: "ready",
+        dependencies: {
+          postgres: "up",
+          redis: "up"
+        },
+        timestamp: Date.now()
+      });
+    }
+
+    return reply.status(503).send({
+      status: "not_ready",
+      dependencies: {
+        postgres: postgresUp ? "up" : "down",
+        redis: redisUp ? "up" : "down"
+      }
+    });
+  });
 
   app.register(appRoutes, { prefix: "/api/v1" });
   return app;
