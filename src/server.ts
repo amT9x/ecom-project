@@ -4,6 +4,7 @@ import { initDatabase } from "./core/database/postgres";
 import { initRedis } from "./core/cache/redis";
 import { bootstrapSchema } from "./core/database/bootstrap";
 import { app } from "./app";
+import { startMetricsCollector } from "./infrastructure/metrics.collector";
 
 async function start(): Promise<void> {
   try {
@@ -17,6 +18,8 @@ async function start(): Promise<void> {
   } catch (error) {
     logger.warn({ err: error }, "Redis unavailable, starting in degraded mode");
   }
+
+  startMetricsCollector();
 
   await app.listen({
     host: env.HOST,
