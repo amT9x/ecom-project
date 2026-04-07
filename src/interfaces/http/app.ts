@@ -6,7 +6,7 @@ import sensible from "@fastify/sensible";
 import { logger } from "../../core/logger/logger";
 import { jwtPlugin } from "../../core/security/jwt";
 import { appRoutes } from "../routes";
-import { httpDurationMs } from "../../infrastructure/metrics";
+import { httpDurationMs, metricsRegistry } from "../../infrastructure/metrics";
 import { AppError } from "../../core/errors/app-error";
 import { requestContext } from "../middlewares/request-context";
 import { pgPool } from "../../core/database/postgres";
@@ -77,6 +77,11 @@ export function buildApp() {
         redis: redisUp ? "up" : "down"
       }
     });
+  });
+
+  app.get("/metrics", async (_, reply) => {
+    reply.header("Content-Type", metricsRegistry.contentType);
+    return metricsRegistry.metrics();
   });
 
   app.register(appRoutes, { prefix: "/api/v1" });
