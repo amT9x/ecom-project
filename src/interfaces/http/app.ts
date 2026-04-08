@@ -3,7 +3,6 @@ import cors from "@fastify/cors";
 import helmet from "@fastify/helmet";
 import rateLimit from "@fastify/rate-limit";
 import sensible from "@fastify/sensible";
-import { logger } from "../../core/logger/logger";
 import { jwtPlugin } from "../../core/security/jwt";
 import { appRoutes } from "../routes";
 import { httpDurationMs, metricsRegistry } from "../../infrastructure/metrics";
@@ -11,9 +10,31 @@ import { AppError } from "../../core/errors/app-error";
 import { requestContext } from "../middlewares/request-context";
 import { pgPool } from "../../core/database/postgres";
 import { redis } from "../../core/cache/redis";
+import { env } from "../../config/env";
 
 export function buildApp() {
-  const app = Fastify({ loggerInstance: logger });
+
+  const evnToLogger = {
+    name: env.APP_NAME,
+    level: env.LOG_LEVEL,
+    base: {
+      service: "ecom-api"
+    },
+    timestamp: true,
+    transport:
+      env.NODE_ENV === "development"
+        ? {
+            target: "pino-pretty",
+            options: {
+              colorize: true,
+              translateTime: "SYS:standard",
+              ignore: "pid,hostname"
+            }
+          }
+        : undefined
+  };
+
+  const app = Fastify({  logger: evnToLogger ?? true });
 
   app.addHook("onRequest", requestContext);
 
@@ -36,12 +57,16 @@ export function buildApp() {
     return reply.status(500).send({ message: "Internal server error" });
   });
 
-  app.get("/health", async () => ({
-    status: "ok",
-    service: "ecom-backend",
-    uptime: process.uptime(),
-    timestamp: Date.now()
-  }));
+  app.get("/health", async (request, reply) => {
+    request.log.info("health check called");
+
+    return {
+      status: "ok",
+      service: "ecom-backend",
+      uptime: process.uptime(),
+      timestamp: Date.now()
+    }
+  });
 
   app.get("/ready", async (_, reply) => {
     let postgresUp = true;

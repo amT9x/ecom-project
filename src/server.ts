@@ -21,12 +21,16 @@ async function start(): Promise<void> {
 
   startMetricsCollector();
 
-  await app.listen({
-    host: env.HOST,
-    port: env.PORT
-  });
-
-  logger.info({ host: env.HOST, port: env.PORT }, "Server started");
+  try {
+    await app.listen({
+      host: env.HOST,
+      port: env.PORT
+    });
+    app.log.info({ host: env.HOST, port: env.PORT }, "Server started");
+  } catch (err) {
+    logger.error(err)
+    process.exit(1);
+  }
 }
 
 start().catch((error) => {
