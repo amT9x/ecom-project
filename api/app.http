@@ -1,0 +1,13 @@
+@baseUrl = http://localhost:3000
+
+### Root
+GET {{baseUrl}}
+
+### Health
+GET {{baseUrl}}/health
+
+### Ready
+GET {{baseUrl}}/ready
+
+### Metrics
+GET {{baseUrl}}/metrics
