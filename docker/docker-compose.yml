@@ -1,10 +1,11 @@
 version: "3.9"
+name: ecom-monitor
 services:
   api:
+    image: ecom-monitor
     build:
       context: ..
       dockerfile: docker/Dockerfile
-    container_name: ecom-api
     ports:
       - "3000:3000"
     extra_hosts:
